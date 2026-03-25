@@ -8,7 +8,6 @@ import io
 import json
 import re
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from groq import Groq
 import pdfplumber
 from db import query
 
@@ -17,12 +16,16 @@ import os
 
 api_key = os.getenv("GROQ_API_KEY")
 
+client = None
+
 if api_key:
-    from groq import Groq
-    client = Groq(api_key=api_key)
-else:
-    client = None
-    
+    try:
+        from groq import Groq
+        client = Groq(api_key=api_key)
+    except Exception as e:
+        print("Groq init failed:", e)
+        client = None
+
 @router.get("/keyword-frequency")
 def keyword_frequency():
     return query("""
