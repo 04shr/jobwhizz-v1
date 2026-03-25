@@ -3,8 +3,7 @@
 //  Change API_BASE to your deployed backend URL
 // ════════════════════════════════════════════════
 
-//export const API_BASE = "https://your-backend.onrender.com";
-export const API_BASE = "http://127.0.0.1:8000";
+export const API_BASE = "https://jobwhizz-v1.onrender.com";
 
 export async function apiFetch(endpoint, retries = 3, delay = 1500) {
   for (let i = 0; i < retries; i++) {
