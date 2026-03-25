@@ -9,12 +9,19 @@ import json
 import re
 import math
 from fastapi import APIRouter, Form, HTTPException
-from groq import Groq
 from db import query
 
 router = APIRouter(prefix="/api/dss", tags=["DSS"])
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+client = None
+api_key = os.getenv("GROQ_API_KEY")
 
+if api_key:
+    try:
+        from groq import Groq
+        client = Groq(api_key=api_key)
+    except Exception as e:
+        print("Groq init failed (DSS):", e)
+        client = None
 
 def get_role_salary_map():
     rows = query("""
@@ -243,6 +250,9 @@ async def action_plan(
     city: str = Form(...), experience: int = Form(...), skills: str = Form(...),
     missing_skills: str = Form(default=""), salary_gap: str = Form(default="0"),
 ):
+    if not client:
+        raise HTTPException(status_code=503, detail="AI service unavailable")
+
     user_prompt = f"""
 Create a personalised 90-day career action plan:
 - Current Role: {current_role}
