@@ -1,0 +1,49 @@
+# 🔐 Environment variables (VERY IMPORTANT)
+.env
+
+# 🐍 Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# 📦 Virtual environment
+venv/
+env/
+.venv/
+
+# 🧪 Testing / cache
+.pytest_cache/
+.coverage
+
+# 🧰 IDE / Editor
+.vscode/
+.idea/
+
+# 🖥 OS files
+.DS_Store
+Thumbs.db
+
+# 📁 Logs
+*.log
+
+# 📦 Node (frontend)
+node_modules/
+
+# 🔥 Firebase (you don’t need this anymore)
+.firebase/
+.firebase.json
+
+# 📊 Build / dist
+dist/
+build/
+
+# 🚫 Secrets
+*.key
+*.pem
+
+.lh
+/backend/.env
+/backend/_pycache__/
+.migration.md

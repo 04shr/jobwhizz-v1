@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JobWhiz Lab — EDA</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/style.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body data-page="eda">
+
+<nav>
+  <a class="nav-logo" href="index.html">◈ Job<span>Whiz</span> Lab</a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="index.html#dashboard">Dashboard</a></li>
+    <li><a class="active">EDA</a></li>
+    <li><a href="nlp.html">NLP</a></li>
+    <li><a href="sml.html">SML</a></li>
+    <li><a href="dss.html">DSS</a></li>
+  </ul>
+  <div class="api-status">
+    <div class="api-dot" id="apiDot"></div>
+    <span id="apiLabel" style="color:var(--muted)">Connecting...</span>
+  </div>
+</nav>
+
+<div class="page active" id="page-eda">
+  <div class="page-hero">
+    <div class="page-hero-meta">EDA · EXPLORATORY DATA ANALYSIS</div>
+    <h2>Data Exploration</h2>
+    <p>Schema audit, data quality, distributions, correlations, and skill analysis — all from live PostgreSQL.</p>
+  </div>
+
+  <div class="page-body">
+
+    <!-- KPI Summary -->
+    <div class="kpi-grid anim" id="kpi-grid">
+      <div class="kpi-cell"><div class="kpi-val">—</div><div class="kpi-label">Total Jobs</div></div>
+    </div>
+
+    <!-- Data Quality -->
+    <div class="chart-card anim" style="margin-bottom:1.5rem">
+      <h3>Data Quality Audit</h3>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>Column</th><th>Type</th><th>Nulls</th><th>Coverage</th><th>Status</th><th>Note</th></tr></thead>
+          <tbody id="dq-tbody"><tr><td colspan="6" class="loading"><div class="spinner"></div>Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- City Distribution -->
+    <div class="chart-card anim" style="margin-bottom:1.5rem">
+      <h3>Jobs by City</h3>
+      <div class="bar-chart" id="city-bars"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      <p id="city-insight" style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted);margin-top:1rem;line-height:1.6"></p>
+    </div>
+
+    <!-- Skills -->
+    <div class="chart-card anim" style="margin-bottom:1.5rem">
+      <h3>Top In-Demand Skills</h3>
+      <div class="bar-chart" id="skills-grouped"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+    </div>
+
+    <!-- Salary Histogram -->
+    <div class="chart-card anim" style="margin-bottom:1.5rem">
+      <h3>Salary Distribution</h3>
+      <canvas id="salaryHistChart" height="100"></canvas>
+    </div>
+
+    <!-- Bivariate -->
+    <div class="chart-grid anim" style="margin-bottom:1.5rem">
+      <div class="chart-card">
+        <h3>Avg Salary by Role</h3>
+        <div class="bar-chart" id="role-salary-bars"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      </div>
+      <div class="chart-card">
+        <h3>Avg Salary by City</h3>
+        <div class="bar-chart" id="city-salary-bars"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- Experience vs Salary -->
+    <div class="chart-card anim" style="margin-bottom:1.5rem">
+      <h3>Experience vs Salary</h3>
+      <span id="corr-badge" style="font-family:var(--font-mono);font-size:.72rem;color:var(--accent2);margin-bottom:.75rem;display:inline-block"></span>
+      <canvas id="expSalaryChart" height="100"></canvas>
+    </div>
+
+    <!-- Top Companies -->
+    <div class="chart-card anim" style="margin-bottom:1.5rem">
+      <h3>Top Hiring Companies</h3>
+      <div class="bar-chart" id="company-bars"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+    </div>
+
+    <!-- Jobs Table -->
+    <div class="chart-card anim" style="margin-bottom:1.5rem">
+      <h3>Recent Jobs (Live)</h3>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>Title</th><th>Company</th><th>City</th><th>Salary</th><th>Experience</th><th>Posted</th></tr></thead>
+          <tbody id="jobs-tbody"><tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading...</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+  <footer>
+    <span>◈ JobWhiz Lab · EDA</span>
+    <span>PostgreSQL · Adzuna API</span>
+  </footer>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

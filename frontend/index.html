@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JobWhiz Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/style.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body data-page="home">
+
+<nav>
+  <a class="nav-logo" href="index.html">◈ Job<span>Whiz</span> Lab</a>
+  <ul class="nav-links">
+    <li><a onclick="showPage('home')"      id="nav-home"      class="active">Home</a></li>
+    <li><a onclick="showPage('dashboard')" id="nav-dashboard">Dashboard</a></li>
+    <li><a href="eda.html"  id="nav-eda">EDA</a></li>
+    <li><a href="nlp.html"  id="nav-nlp">NLP</a></li>
+    <li><a href="sml.html"  id="nav-sml">SML</a></li>
+    <li><a href="dss.html"  id="nav-dss">DSS</a></li>
+  </ul>
+  <div class="api-status">
+    <div class="api-dot" id="apiDot"></div>
+    <span id="apiLabel" style="color:var(--muted)">Connecting...</span>
+  </div>
+</nav>
+
+<!-- ── HOME ─────────────────────────────────────── -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <div class="hero-grid"></div>
+    <div class="hero-glow"></div>
+    <div class="hero-badge">◈ JOBWHIZ LAB — LIVE DATA</div>
+    <h1>Decode the<br/><em>Job Market</em><br/>with Data</h1>
+    <p class="hero-sub">Real-time job market intelligence. ETL pipelines, NLP skill extraction, ML salary prediction, and career path decision support.</p>
+    <div class="hero-actions">
+      <button class="btn btn-primary btn-lg" onclick="showPage('dashboard')">Explore Dashboard →</button>
+      <a class="btn btn-ghost btn-lg" href="nlp.html">Try NLP Demo</a>
+    </div>
+  </div>
+
+  <div class="live-stats">
+    <div class="stat-card"><div class="stat-num" id="hs-jobs">—</div><div class="stat-label">JOBS INDEXED</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-companies">—</div><div class="stat-label">COMPANIES</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-cities">—</div><div class="stat-label">CITIES</div></div>
+    <div class="stat-card"><div class="stat-num" id="hs-salary">—</div><div class="stat-label">AVG SALARY (LPA)</div></div>
+  </div>
+
+  <div style="max-width:1100px;margin:0 auto;padding:4rem 2.5rem 2rem">
+    <div style="font-family:var(--font-mono);font-size:.68rem;color:var(--accent);letter-spacing:.1em;margin-bottom:2rem">WHAT EACH PAGE DOES</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem" id="feature-grid"></div>
+  </div>
+
+  <footer>
+    <span>◈ JobWhiz Lab · PostgreSQL + FastAPI + Firebase</span>
+    <span id="footer-count">Loading...</span>
+  </footer>
+</div>
+
+<!-- ── DASHBOARD ──────────────────────────────────── -->
+<div class="page" id="page-dashboard">
+  <div class="page-hero">
+    <div class="page-hero-meta">DASHBOARD · DESCRIPTIVE ANALYTICS</div>
+    <h2>Market Intelligence</h2>
+    <p>Real job data from PostgreSQL — updated every ETL run.</p>
+  </div>
+  <div class="page-body">
+    <div class="kpi-row" id="dash-kpis">
+      <div class="kpi"><div class="kpi-val">—</div><div class="kpi-label">TOTAL JOBS</div></div>
+      <div class="kpi"><div class="kpi-val">—</div><div class="kpi-label">AVG SALARY</div></div>
+      <div class="kpi"><div class="kpi-val">—</div><div class="kpi-label">COMPANIES</div></div>
+      <div class="kpi"><div class="kpi-val">—</div><div class="kpi-label">CITIES</div></div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>Top Skills</h3>
+        <div class="bar-chart" id="dash-skills"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      </div>
+      <div class="chart-card">
+        <h3>Jobs by City</h3>
+        <div class="bar-chart" id="dash-cities"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3>Salary Distribution</h3>
+      <canvas id="salaryChart" height="120"></canvas>
+    </div>
+  </div>
+  <footer><span>◈ JobWhiz Lab</span><span>Dashboard · Live PostgreSQL</span></footer>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

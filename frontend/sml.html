@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JobWhiz Lab — SML</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/style.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body data-page="sml">
+
+<nav>
+  <a class="nav-logo" href="index.html">◈ Job<span>Whiz</span> Lab</a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="index.html#dashboard">Dashboard</a></li>
+    <li><a href="eda.html">EDA</a></li>
+    <li><a href="nlp.html">NLP</a></li>
+    <li><a class="active">SML</a></li>
+    <li><a href="dss.html">DSS</a></li>
+  </ul>
+  <div class="api-status">
+    <div class="api-dot" id="apiDot"></div>
+    <span id="apiLabel" style="color:var(--muted)">Connecting...</span>
+  </div>
+</nav>
+
+<div class="page active" id="page-sml">
+  <div class="page-hero">
+    <div class="page-hero-meta">SML · STATISTICAL &amp; MACHINE LEARNING</div>
+    <h2>Predictive Analytics</h2>
+    <p>Salary prediction, regression analysis, hypothesis testing, feature importance, and model evaluation — all computed from live data.</p>
+  </div>
+
+  <div class="page-body">
+
+    <!-- Stat Strip -->
+    <div style="font-family:var(--font-mono);font-size:.68rem;color:var(--accent);letter-spacing:.08em;margin-bottom:.75rem">DESCRIPTIVE STATISTICS</div>
+    <div class="stat-strip anim" id="stat-strip">
+      <div class="stat-cell"><div class="stat-val">—</div><div class="stat-name">Loading...</div></div>
+    </div>
+
+    <!-- Salary Predictor -->
+    <div class="chart-card anim" style="margin-bottom:1.5rem">
+      <h3>Salary Predictor — Live Model</h3>
+      <p style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted);margin-bottom:1.5rem;line-height:1.6">Prediction = (Role baseline + City adjustment) × Experience multiplier. All values from live DB.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start">
+        <div class="ml-form" style="max-width:100%">
+          <div class="field">
+            <label>Job Role</label>
+            <select id="p-role" onchange="updatePrediction()"><option>Loading...</option></select>
+          </div>
+          <div class="field">
+            <label>City</label>
+            <select id="p-city" onchange="updatePrediction()"><option>Loading...</option></select>
+          </div>
+          <div class="field">
+            <label>Experience — <span id="exp-val">2</span> years</label>
+            <input type="range" id="p-exp" min="0" max="20" value="2"
+                   oninput="document.getElementById('exp-val').textContent=this.value; updatePrediction()"/>
+          </div>
+          <div class="field">
+            <label>Top Skill</label>
+            <select id="p-skill" onchange="updatePrediction()"><option>Loading...</option></select>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:.65rem;color:var(--muted2);margin-top:.5rem" id="formula-box"></div>
+        </div>
+        <div class="pred-result show" id="pred-result">
+          <div class="loading"><div class="spinner"></div>Calculating...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Regression -->
+    <div class="chart-card anim" style="margin-bottom:1.5rem">
+      <h3>Linear Regression — Experience vs Salary</h3>
+      <div style="margin-bottom:.75rem">
+        <div id="reg-stats"></div>
+      </div>
+      <div style="display:flex;gap:2rem;margin-bottom:1rem">
+        <div><div style="font-family:var(--font-mono);font-size:.65rem;color:var(--muted)">SLOPE</div><div style="font-family:var(--font-head);font-size:1.5rem;font-weight:800;color:var(--teal)" id="slope-display">—</div></div>
+        <div><div style="font-family:var(--font-mono);font-size:.65rem;color:var(--muted)">R²</div><div style="font-family:var(--font-head);font-size:1.5rem;font-weight:800;color:var(--accent2)" id="r2-display">—</div></div>
+      </div>
+      <canvas id="regressionChart" height="120"></canvas>
+    </div>
+
+    <!-- Feature Importance -->
+    <div class="chart-grid anim" style="margin-bottom:1.5rem">
+      <div class="chart-card">
+        <h3>Feature Importance (% variance explained)</h3>
+        <div id="fi-bars"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      </div>
+      <div class="chart-card">
+        <h3>Avg Salary by Role</h3>
+        <div id="role-range-bars"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- Distribution + Boxplot -->
+    <div class="chart-card anim" style="margin-bottom:1.5rem">
+      <h3>Salary Distribution</h3>
+      <canvas id="distChart" height="100" style="margin-bottom:2rem"></canvas>
+      <h3 style="margin-top:1.5rem">Five-Number Summary</h3>
+      <div class="boxplot-wrap" id="boxplot" style="margin:1rem 0"></div>
+      <div class="bp-labels" id="bp-labels"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:1rem" id="five-num"></div>
+    </div>
+
+    <!-- Hypothesis Testing -->
+    <div class="chart-grid anim" style="margin-bottom:1.5rem">
+      <div class="chart-card">
+        <h3>Hypothesis 1: Data Engineers vs Rest</h3>
+        <div style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted2);margin-bottom:.75rem">H₀: No salary difference · H₁: Data Engineers earn more</div>
+        <div id="hyp1-result"><div class="loading"><div class="spinner"></div>Computing...</div></div>
+      </div>
+      <div class="chart-card">
+        <h3>Hypothesis 2: Bangalore vs Other Cities</h3>
+        <div style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted2);margin-bottom:.75rem">H₀: No salary difference · H₁: Bangalore pays more</div>
+        <div id="hyp2-result"><div class="loading"><div class="spinner"></div>Computing...</div></div>
+      </div>
+    </div>
+
+    <!-- Model Evaluation -->
+    <div class="chart-card anim" style="margin-bottom:1.5rem">
+      <h3>Model Evaluation</h3>
+      <p style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted);margin-bottom:1.5rem;line-height:1.6">Role-mean baseline model: predicts each job's salary using its role's average. Metrics computed on all jobs with known salary.</p>
+      <div id="eval-grid"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      <canvas id="actualVsPred" height="120" style="margin-top:1.5rem"></canvas>
+    </div>
+
+  </div>
+  <footer>
+    <span>◈ JobWhiz Lab · SML</span>
+    <span id="footer-note">PostgreSQL · Adzuna API</span>
+  </footer>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+    "sourceFile": "backend/schema.sql",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 5,
+            "patches": [
+                {
+                    "date": 1774420097149,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1774420150671,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -12,9 +12,9 @@\n     salary_max    NUMERIC(10,2),\n     salary_avg    NUMERIC(10,2),\n     employment_type VARCHAR(50),\n     experience_min  INT,\n-    experience_max  INT,ē\n+    experience_max  INT,\n     description   TEXT,\n     source        VARCHAR(100) DEFAULT 'adzuna',\n     redirect_url  VARCHAR(1000),\n     date_posted   DATE,\n"
+                },
+                {
+                    "date": 1774420162978,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -11,9 +11,9 @@\n     country       VARCHAR(100) DEFAULT 'India',\n     salary_max    NUMERIC(10,2),\n     salary_avg    NUMERIC(10,2),\n     employment_type VARCHAR(50),\n-    experience_min  INT,\n+    experience_min  INT,ē\n     experience_max  INT,\n     description   TEXT,\n     source        VARCHAR(100) DEFAULT 'adzuna',\n     redirect_url  VARCHAR(1000),\n"
+                },
+                {
+                    "date": 1774420225372,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -11,9 +11,9 @@\n     country       VARCHAR(100) DEFAULT 'India',\n     salary_max    NUMERIC(10,2),\n     salary_avg    NUMERIC(10,2),\n     employment_type VARCHAR(50),\n-    experience_min  INT,ē\n+    experience_min  INT,\n     experience_max  INT,\n     description   TEXT,\n     source        VARCHAR(100) DEFAULT 'adzuna',\n     redirect_url  VARCHAR(1000),\n@@ -62,4 +62,9 @@\n -- Indexes for performance\n CREATE INDEX IF NOT EXISTS idx_jobs_city    ON jobs(city);\n CREATE INDEX IF NOT EXISTS idx_jobs_salary  ON jobs(salary_avg);\n CREATE INDEX IF NOT EXISTS idx_js_skill     ON job_skills(skill_id);\n+\n+\n+SELECT table_name \n+FROM information_schema.tables \n+WHERE table_schema = 'public';\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1774420608804,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -64,7 +64,5 @@\n CREATE INDEX IF NOT EXISTS idx_jobs_salary  ON jobs(salary_avg);\n CREATE INDEX IF NOT EXISTS idx_js_skill     ON job_skills(skill_id);\n \n \n-SELECT table_name \n-FROM information_schema.tables \n-WHERE table_schema = 'public';\n\\ No newline at end of file\n+SELECT COUNT(*) FROM jobs;\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1774420639520,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -64,5 +64,4 @@\n CREATE INDEX IF NOT EXISTS idx_jobs_salary  ON jobs(salary_avg);\n CREATE INDEX IF NOT EXISTS idx_js_skill     ON job_skills(skill_id);\n \n \n-SELECT COUNT(*) FROM jobs;\n\\ No newline at end of file\n"
+                }
+            ],
+            "date": 1774420097149,
+            "name": "Commit-0",
+            "content": "-- JobWhiz Lab — PostgreSQL Schema\n-- Run once to set up the database\n\nCREATE TABLE IF NOT EXISTS jobs (\n    id            SERIAL PRIMARY KEY,\n    external_id   VARCHAR(255) UNIQUE,\n    title         VARCHAR(255) NOT NULL,\n    company       VARCHAR(255) NOT NULL,\n    location      VARCHAR(255),\n    city          VARCHAR(100),\n    country       VARCHAR(100) DEFAULT 'India',\n    salary_max    NUMERIC(10,2),\n    salary_avg    NUMERIC(10,2),\n    employment_type VARCHAR(50),\n    experience_min  INT,\n    experience_max  INT,ē\n    description   TEXT,\n    source        VARCHAR(100) DEFAULT 'adzuna',\n    redirect_url  VARCHAR(1000),\n    date_posted   DATE,\n    date_fetched  TIMESTAMPTZ DEFAULT NOW(),\n    is_active     BOOLEAN DEFAULT TRUE\n);\n\nCREATE TABLE IF NOT EXISTS skills (\n    id          SERIAL PRIMARY KEY,\n    skill_name  VARCHAR(100) UNIQUE NOT NULL,\n    category    VARCHAR(50) DEFAULT 'other',\n    created_at  TIMESTAMPTZ DEFAULT NOW()\n);\n\nCREATE TABLE IF NOT EXISTS job_skills (\n    job_id   INT REFERENCES jobs(id) ON DELETE CASCADE,\n    skill_id INT REFERENCES skills(id) ON DELETE CASCADE,\n    PRIMARY KEY (job_id, skill_id)\n);\n\nCREATE TABLE IF NOT EXISTS experiments (\n    id             SERIAL PRIMARY KEY,\n    name           VARCHAR(255) NOT NULL,\n    description    TEXT,\n    variant_a_name VARCHAR(100),\n    variant_b_name VARCHAR(100),\n    metric         VARCHAR(100),\n    start_date     DATE,\n    end_date       DATE,\n    status         VARCHAR(20) DEFAULT 'draft',\n    winner         VARCHAR(20),\n    p_value        NUMERIC(6,4),\n    created_at     TIMESTAMPTZ DEFAULT NOW()\n);\n\nCREATE TABLE IF NOT EXISTS experiment_events (\n    id            SERIAL PRIMARY KEY,\n    experiment_id INT REFERENCES experiments(id) ON DELETE CASCADE,\n    variant       CHAR(1) CHECK (variant IN ('A','B')),\n    event_type    VARCHAR(100),\n    user_session  VARCHAR(255),\n    occurred_at   TIMESTAMPTZ DEFAULT NOW()\n);\n\n-- Indexes for performance\nCREATE INDEX IF NOT EXISTS idx_jobs_city    ON jobs(city);\nCREATE INDEX IF NOT EXISTS idx_jobs_salary  ON jobs(salary_avg);\nCREATE INDEX IF NOT EXISTS idx_js_skill     ON job_skills(skill_id);\n"
+        }
+    ]
+}

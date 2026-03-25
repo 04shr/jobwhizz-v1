@@ -1,0 +1,22 @@
+{
+    "sourceFile": ".vscode/settings.json",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 1,
+            "patches": [
+                {
+                    "date": 1774419793469,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1774419900472,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,9 +6,9 @@\n             \"server\": \"localhost\",\r\n             \"port\": 5432,\r\n             \"driver\": \"PostgreSQL\",\r\n             \"name\": \"Local PostgreSQL\",\r\n-            \"database\": \"postgres\",\r\n+            \"database\": \"joblens_pg\",\r\n             \"username\": \"postgres\"\r\n         }\r\n     ]\r\n }\n\\ No newline at end of file\n"
+                }
+            ],
+            "date": 1774419793469,
+            "name": "Commit-0",
+            "content": "{\r\n    \"sqltools.connections\": [\r\n        {\r\n            \"ssh\": \"Disabled\",\r\n            \"previewLimit\": 50,\r\n            \"server\": \"localhost\",\r\n            \"port\": 5432,\r\n            \"driver\": \"PostgreSQL\",\r\n            \"name\": \"Local PostgreSQL\",\r\n            \"database\": \"postgres\",\r\n            \"username\": \"postgres\"\r\n        }\r\n    ]\r\n}"
+        }
+    ]
+}

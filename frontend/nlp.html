@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JobWhiz Lab — NLP</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/style.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body data-page="nlp">
+
+<nav>
+  <a class="nav-logo" href="index.html">◈ Job<span>Whiz</span> Lab</a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="index.html#dashboard">Dashboard</a></li>
+    <li><a href="eda.html">EDA</a></li>
+    <li><a class="active">NLP</a></li>
+    <li><a href="sml.html">SML</a></li>
+    <li><a href="dss.html">DSS</a></li>
+  </ul>
+  <div class="api-status">
+    <div class="api-dot" id="apiDot"></div>
+    <span id="apiLabel" style="color:var(--muted)">Connecting...</span>
+  </div>
+</nav>
+
+<div class="page active" id="page-nlp">
+  <div class="page-hero">
+    <div class="page-hero-meta">NLP · DIAGNOSTIC ANALYTICS</div>
+    <h2>Language Intelligence</h2>
+    <p>Skill extraction from job descriptions, resume parsing, JD matching, and AI-powered ATS evaluation.</p>
+  </div>
+
+  <div class="page-body">
+
+    <!-- Skill Frequency from DB -->
+    <div class="chart-card anim" style="margin-bottom:1.5rem">
+      <h3>Top Skills in Database (Live)</h3>
+      <div class="bar-chart" id="skillFreqBars"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+    </div>
+
+    <!-- JD Skill Extractor -->
+    <div class="chart-card anim" style="margin-bottom:1.5rem">
+      <h3>JD Skill Extractor</h3>
+      <div class="nlp-demo">
+        <div class="nlp-box">
+          <label>Paste Job Description</label>
+          <textarea id="jdInput" placeholder="Paste any job description here..."></textarea>
+          <button class="btn btn-primary" style="margin-top:.75rem;width:100%" onclick="extractSkills()">Extract Skills →</button>
+        </div>
+        <div class="nlp-box">
+          <label>Detected Skills</label>
+          <div id="skillOutput" style="min-height:60px"></div>
+          <label style="margin-top:1rem">Likely Role</label>
+          <div id="roleOutput"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resume Analyser -->
+    <div class="chart-card anim" style="margin-bottom:1.5rem">
+      <h3>Resume Analyser — AI-Powered ATS Evaluation</h3>
+      <p style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted);margin-bottom:1.5rem;line-height:1.6">Upload or paste your resume, select a job, pick a tone, and get a real-time ATS score powered by Groq.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
+        <!-- Left: upload -->
+        <div>
+          <div style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:.75rem">Step 1 — Upload Resume</div>
+          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('resumeFile').click()">
+            <input type="file" id="resumeFile" accept=".pdf,.txt" style="display:none" onchange="handleFileUpload(this)"/>
+            <div>📄 Click to upload PDF or TXT</div>
+            <div style="font-size:.65rem;margin-top:.4rem;color:var(--muted2)">or paste below</div>
+          </div>
+          <div class="file-info" id="fileInfo">
+            <span id="fileName"></span> · <span id="fileSize"></span>
+            <button class="btn btn-ghost" style="margin-left:.75rem;padding:.2rem .6rem;font-size:.65rem" onclick="clearFile()">✕ Clear</button>
+          </div>
+          <div class="parsed-card" id="parsedCard">
+            <div id="parsedContent"></div>
+          </div>
+          <div style="margin-top:.75rem">
+            <div style="font-family:var(--font-mono);font-size:.62rem;color:var(--muted);margin-bottom:.4rem">Or paste resume text:</div>
+            <textarea id="resumePaste" placeholder="Paste resume text here..." style="width:100%;background:#0d0f15;border:1px solid var(--border);border-radius:8px;padding:.75rem;color:var(--text);font-family:var(--font-mono);font-size:.75rem;min-height:80px;outline:none;resize:vertical"></textarea>
+            <button class="btn btn-ghost" style="margin-top:.4rem;width:100%" onclick="parseResumeText()">Parse Text →</button>
+          </div>
+        </div>
+
+        <!-- Right: JD matches -->
+        <div>
+          <div style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:.75rem">Step 2 — Select a Matching Job</div>
+          <div id="jdMatchesWrap" style="min-height:60px">
+            <p style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted)">Upload or paste resume first to find matches.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tone selector -->
+      <div style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:.75rem">Step 3 — Choose Tone</div>
+      <div class="tone-btns">
+        <button class="tone-btn active" onclick="selectTone('normal', this)">🎯 Professional</button>
+        <button class="tone-btn" onclick="selectTone('roast', this)">🔥 Roast Me</button>
+        <button class="tone-btn" onclick="selectTone('hype', this)">🚀 Hype Me Up</button>
+        <button class="tone-btn" onclick="selectTone('interviewer', this)">😤 Interviewer</button>
+      </div>
+      <button class="analyse-btn" id="analyseBtn" onclick="analyseResume()" disabled>🎯 Analyse Resume</button>
+    </div>
+
+    <!-- Loading state -->
+    <div class="loading-state" id="loadingState">
+      <div class="loading-ring" id="loadingRing"></div>
+      <div style="font-family:var(--font-head);font-size:1rem;font-weight:700" id="loadingText">Analysing...</div>
+      <div style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted);margin-top:.5rem" id="loadingSubtext">Powered by Groq · llama-3.3-70b</div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-panel" id="resultsPanel">
+      <div class="chart-card" style="margin-bottom:1.5rem">
+        <div class="score-section">
+          <div>
+            <div class="score-ring-wrap">
+              <canvas id="scoreRing"></canvas>
+              <div class="score-center">
+                <div class="score-num" id="scoreNum">—</div>
+                <div class="score-pct">/ 100</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-head);font-size:1.2rem;font-weight:800;margin-bottom:.25rem" id="scoreRole">—</div>
+            <div style="font-family:var(--font-mono);font-size:.75rem;color:var(--accent);font-style:italic;margin-bottom:.75rem" id="scoreOneliner">—</div>
+            <p style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted);line-height:1.6" id="scoreSummary">—</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="pc-grid">
+        <div class="chart-card">
+          <h3 style="color:var(--accent)">✓ Strengths</h3>
+          <div id="prosList"></div>
+        </div>
+        <div class="chart-card">
+          <h3 style="color:var(--danger)">⚠ Weaknesses</h3>
+          <div id="consList"></div>
+        </div>
+      </div>
+
+      <div class="chart-card" style="margin-bottom:1.5rem">
+        <h3>Skill Match</h3>
+        <div style="margin-bottom:.75rem" id="matchedChips"></div>
+        <h3 style="margin-top:1rem">Missing Skills</h3>
+        <div id="missingChips"></div>
+        <h3 style="margin-top:1rem">ATS Flags</h3>
+        <div id="atsFlags"></div>
+      </div>
+
+      <div class="chart-card" style="margin-bottom:1.5rem">
+        <h3>Action Items</h3>
+        <div id="actionItems"></div>
+      </div>
+    </div>
+
+  </div>
+  <footer>
+    <span>◈ JobWhiz Lab · NLP</span>
+    <span>Groq · llama-3.3-70b · PostgreSQL</span>
+  </footer>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
