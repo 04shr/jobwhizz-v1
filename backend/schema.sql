@@ -65,3 +65,10 @@ CREATE INDEX IF NOT EXISTS idx_jobs_salary  ON jobs(salary_avg);
 CREATE INDEX IF NOT EXISTS idx_js_skill     ON job_skills(skill_id);
 
 
+SELECT table_name 
+FROM information_schema.tables 
+WHERE table_schema = 'public';
+
+SELECT table_schema, table_name 
+FROM information_schema.tables 
+WHERE table_name = 'job_skills';

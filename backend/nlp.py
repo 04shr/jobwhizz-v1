@@ -13,9 +13,16 @@ import pdfplumber
 from db import query
 
 router = APIRouter(prefix="/api/nlp", tags=["NLP"])
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+import os
 
+api_key = os.getenv("GROQ_API_KEY")
 
+if api_key:
+    from groq import Groq
+    client = Groq(api_key=api_key)
+else:
+    client = None
+    
 @router.get("/keyword-frequency")
 def keyword_frequency():
     return query("""

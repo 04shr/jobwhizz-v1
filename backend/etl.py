@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 ADZUNA_APP_ID  = os.getenv("ADZUNA_APP_ID", "")
 ADZUNA_APP_KEY = os.getenv("ADZUNA_APP_KEY", "")
 ADZUNA_BASE    = "https://api.adzuna.com/v1/api"
-
+print("DB HOST:", os.getenv("DB_HOST"))
 
 # ── CLEANUP ───────────────────────────────────────────────────────
 def delete_old_jobs(days_to_keep: int = 30):
