@@ -57,7 +57,7 @@ def salary_by_city():
         SELECT
             city,
             ROUND(AVG(salary_avg)::numeric, 2) AS avg_salary,
-            ROUND(MAX(salary_max)::numeric, 2) AS max_salary,
+            ROUND(COALESCE(MAX(salary_max), 0)::numeric, 2) AS max_salary,
             COUNT(*) AS job_count
         FROM jobs
         WHERE salary_avg IS NOT NULL AND city IS NOT NULL AND city != ''
@@ -79,8 +79,8 @@ def salary_by_role():
                 WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
                 ELSE 'Other'
             END AS role,
-            ROUND(AVG(salary_avg)::numeric, 2) AS avg_salary,
-            ROUND(MAX(salary_max)::numeric, 2) AS max_salary,
+            ROUND(COALESCE(AVG(salary_avg), 0)::numeric, 2) AS avg_salary,
+            ROUND(COALESCE(MAX(salary_max), 0)::numeric, 2) AS max_salary,
             COUNT(*) AS job_count
         FROM jobs
         WHERE salary_avg IS NOT NULL

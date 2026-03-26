@@ -60,9 +60,10 @@ def execute(sql, params=None):
 MIGRATION_SQL = """
 -- ── jobs table: new salary columns ────────────────────────────────
 ALTER TABLE jobs
-    ADD COLUMN IF NOT EXISTS salary_min          NUMERIC(10,2),
-    ADD COLUMN IF NOT EXISTS salary_is_predicted BOOLEAN DEFAULT TRUE;
-
+ADD COLUMN IF NOT EXISTS salary_min NUMERIC(10,2),
+ADD COLUMN IF NOT EXISTS salary_max NUMERIC(10,2),
+ADD COLUMN IF NOT EXISTS salary_avg NUMERIC(10,2),
+ADD COLUMN IF NOT EXISTS salary_is_predicted BOOLEAN DEFAULT TRUE;
 -- ── resume_sessions: one row per candidate analysis session ────────
 CREATE TABLE IF NOT EXISTS resume_sessions (
     id               SERIAL PRIMARY KEY,

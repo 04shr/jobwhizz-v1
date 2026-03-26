@@ -72,3 +72,6 @@ WHERE table_schema = 'public';
 SELECT table_schema, table_name 
 FROM information_schema.tables 
 WHERE table_name = 'job_skills';
+
+ALTER TABLE jobs 
+ADD COLUMN IF NOT EXISTS salary_max NUMERIC(10,2);
