@@ -70,23 +70,38 @@ def salary_by_city():
 def salary_by_role():
     return query("""
         SELECT
-            CASE
-                WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
-                WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
-                WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
-                WHEN title ILIKE '%BI Analyst%'       THEN 'BI Analyst'
-                WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
-                WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
-                ELSE 'Other'
-            END AS role,
-            ROUND(COALESCE(AVG(salary_avg), 0)::numeric, 2) AS avg_salary,
-            ROUND(COALESCE(MAX(salary_max), 0)::numeric, 2) AS max_salary,
-            COUNT(*) AS job_count
-        FROM jobs
-        WHERE salary_avg IS NOT NULL
-        AND salary_max IS NOT NULL
-        GROUP BY role
-        ORDER BY avg_salary DESC
+    CASE
+        WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
+        WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
+        WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
+        WHEN title ILIKE '%BI Analyst%'       THEN 'BI Analyst'
+        WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
+        WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
+        ELSE 'Other'
+    END AS role,
+
+    ROUND(
+        COALESCE(
+            AVG(NULLIF(salary_avg, 0)), 0
+        )::numeric, 2
+    ) AS avg_salary,
+
+    ROUND(
+        COALESCE(
+            MAX(NULLIF(salary_max, 0)), 0
+        )::numeric, 2
+    ) AS max_salary,
+
+    COUNT(*) AS job_count
+
+FROM jobs
+
+WHERE 
+    salary_avg IS NOT NULL
+    AND salary_avg > 0
+
+GROUP BY role
+ORDER BY avg_salary DESC;
     """)
 
 
