@@ -42,8 +42,8 @@ build/
 # 🚫 Secrets
 *.key
 *.pem
+.lh/
 
-.lh
 /backend/.env
 /backend/_pycache__/
 .migration.md
