@@ -84,6 +84,7 @@ def salary_by_role():
             COUNT(*) AS job_count
         FROM jobs
         WHERE salary_avg IS NOT NULL
+        AND salary_max IS NOT NULL
         GROUP BY role
         ORDER BY avg_salary DESC
     """)
