@@ -3,11 +3,12 @@ JobWhiz Lab — FastAPI Entry Point
 Run with: uvicorn main:app --reload
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
-from db import query
+from db import query, run_migrations
 from etl import run_etl
 
 import dashboard
@@ -22,6 +23,7 @@ scheduler.add_job(run_etl, trigger="interval", hours=24, id="etl_daily", replace
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    run_migrations()  # ensure salary_avg/salary_max columns and all tables exist
     scheduler.start()
     yield
     scheduler.shutdown()
@@ -44,11 +46,31 @@ app.include_router(sml.router)
 app.include_router(dss.router)
 
 
+# ── Global exception handler ─────────────────────────────────────────────────
+# FastAPI's default 500 handler fires before CORS middleware can attach headers,
+# so the browser sees a CORS error instead of the real error.
+# This handler re-attaches CORS headers on every unhandled exception so the
+# actual error message reaches the frontend console.
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal server error: {str(exc)}"},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
+
+
+# ── Root ─────────────────────────────────────────────────────────────────────
 @app.get("/")
 def root():
     return {"status": "JobWhiz Lab API is running!", "version": "4.0", "db": "PostgreSQL"}
 
 
+# ── Admin ─────────────────────────────────────────────────────────────────────
 @app.post("/api/admin/run-etl")
 def trigger_etl():
     try:
@@ -66,6 +88,7 @@ def scheduler_status():
     return {"status": "scheduled", "next_run": str(job.next_run_time)}
 
 
+# ── Jobs ──────────────────────────────────────────────────────────────────────
 @app.get("/api/jobs")
 def get_jobs(city: str = None, role: str = None, limit: int = 50):
     conditions, params = ["1=1"], []
@@ -100,6 +123,7 @@ def get_job(job_id: int):
     return job
 
 
+# ── Skills ────────────────────────────────────────────────────────────────────
 @app.get("/api/skills/top")
 def top_skills(limit: int = 15):
     return query("""
