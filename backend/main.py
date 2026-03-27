@@ -149,3 +149,11 @@ def skills_by_role():
         GROUP BY role, s.skill_name
         ORDER BY role, frequency DESC
     """)
+
+@app.post("/api/admin/run-migrations")
+def trigger_migrations():
+    try:
+        run_migrations()
+        return {"status": "Migrations applied successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Migration failed: {str(e)}")
