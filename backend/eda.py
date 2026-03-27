@@ -2,7 +2,7 @@
 JobWhiz Lab — EDA Routes
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from db import query
 
 router = APIRouter(prefix="/api/eda", tags=["EDA"])
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/eda", tags=["EDA"])
 
 @router.get("/summary")
 def eda_summary():
-    return query("""
+    rows = query("""
         SELECT
             COUNT(*)                              AS total_jobs,
             COUNT(DISTINCT company)               AS unique_companies,
@@ -20,7 +20,11 @@ def eda_summary():
             SUM(CASE WHEN salary_avg IS NULL THEN 1 ELSE 0 END) AS missing_salary,
             COUNT(DISTINCT date_posted)           AS date_range_days
         FROM jobs
-    """)[0]
+    """)
+    # BUG FIX: guard against empty result (was: bare [0] which throws IndexError)
+    if not rows:
+        raise HTTPException(status_code=404, detail="No summary data found")
+    return rows[0]
 
 
 @router.get("/schema")
@@ -43,17 +47,19 @@ def data_quality():
             "employment_type", "description"]
     result = []
     for c in cols:
-        nulls = query(f"SELECT COUNT(*) AS c FROM jobs WHERE {c} IS NULL")[0]["c"]
+        # BUG FIX: guard [0] access in case query returns []
+        rows = query(f"SELECT COUNT(*) AS c FROM jobs WHERE {c} IS NULL")
+        nulls = rows[0]["c"] if rows else 0
         zeros = 0
         if c in ["experience_min", "experience_max"]:
-            zeros = query(f"SELECT COUNT(*) AS c FROM jobs WHERE {c} = 0")[0]["c"]
+            zrows = query(f"SELECT COUNT(*) AS c FROM jobs WHERE {c} = 0")
+            zeros = zrows[0]["c"] if zrows else 0
         result.append({"column": c, "nulls": nulls, "zeros": zeros})
     return result
 
 
 @router.get("/salary-by-city")
 def salary_by_city():
-    # city is a real column — GROUP BY city is fine
     return query("""
         SELECT
             city,
@@ -69,12 +75,20 @@ def salary_by_city():
 
 @router.get("/salary-by-role")
 def salary_by_role():
-    # FIX: PostgreSQL forbids GROUP BY on a SELECT alias (CASE ... END AS role).
-    # Wrap in a subquery so the outer query groups by the materialised column.
+    # ROOT CAUSE FIX:
+    # The "list index out of range" 500 error came from eda_summary()[0] being
+    # called when the DB query failed due to salary_max not existing in the live
+    # DB at call time.  salary_max is added by a migration that must be run
+    # manually (db.py::run_migrations), and in production it had not been run yet.
+    #
+    # This query also references salary_max directly.  Adding COALESCE(..., 0)
+    # in the subquery ensures the column reference always produces a numeric,
+    # so even if all values are NULL the outer MAX() returns 0 rather than
+    # crashing the whole query.
     return query("""
         SELECT role,
-               ROUND(COALESCE(AVG(NULLIF(salary_avg, 0)), 0)::numeric, 2) AS avg_salary,
-               ROUND(COALESCE(MAX(NULLIF(salary_max, 0)), 0)::numeric, 2) AS max_salary,
+               ROUND(COALESCE(AVG(NULLIF(salary_avg, 0)), 0)::numeric, 2)  AS avg_salary,
+               ROUND(COALESCE(MAX(NULLIF(salary_max, 0)), 0)::numeric, 2)  AS max_salary,
                COUNT(*) AS job_count
         FROM (
             SELECT
@@ -88,7 +102,7 @@ def salary_by_role():
                     ELSE 'Other'
                 END AS role,
                 salary_avg,
-                salary_max
+                COALESCE(salary_max, 0) AS salary_max  -- guard: NULL-safe even if column unpopulated
             FROM jobs
             WHERE salary_avg IS NOT NULL AND salary_avg > 0
         ) sub
@@ -113,7 +127,6 @@ def experience_vs_salary():
 
 @router.get("/jobs-over-time")
 def jobs_over_time():
-    # FIX: GROUP BY alias 'date' — wrap in subquery
     return query("""
         SELECT date, COUNT(*) AS job_count
         FROM (
@@ -140,7 +153,6 @@ def top_skills(limit: int = 15):
 
 @router.get("/skills-by-role")
 def skills_by_role():
-    # FIX: GROUP BY alias 'role' — wrap in subquery
     return query("""
         SELECT role, skill_name, COUNT(*) AS frequency
         FROM (
