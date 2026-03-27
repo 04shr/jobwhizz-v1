@@ -23,18 +23,26 @@ if api_key:
         print("Groq init failed (DSS):", e)
         client = None
 
+
 def get_role_salary_map():
+    # FIX: GROUP BY alias 'role' — wrap in subquery
     rows = query("""
-        SELECT CASE
-            WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
-            WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
-            WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
-            WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
-            WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
-            WHEN title ILIKE '%AI Engineer%'      THEN 'AI Engineer'
-            ELSE 'Other' END AS role,
-            ROUND(AVG(salary_avg)::numeric, 2) AS avg_sal
-        FROM jobs WHERE salary_avg IS NOT NULL GROUP BY role
+        SELECT role, ROUND(AVG(salary_avg)::numeric, 2) AS avg_sal
+        FROM (
+            SELECT
+                CASE
+                    WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
+                    WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
+                    WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
+                    WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
+                    WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
+                    WHEN title ILIKE '%AI Engineer%'      THEN 'AI Engineer'
+                    ELSE 'Other'
+                END AS role,
+                salary_avg
+            FROM jobs WHERE salary_avg IS NOT NULL
+        ) sub
+        GROUP BY role
     """)
     return {r["role"]: float(r["avg_sal"]) for r in rows}
 
@@ -81,32 +89,50 @@ def market_pulse():
                COUNT(DISTINCT company) AS companies, COUNT(DISTINCT city) AS cities
         FROM jobs
     """)
+    # FIX: GROUP BY alias 'role' — wrap in subquery
     top_role = query("""
-        SELECT CASE
-            WHEN title ILIKE '%Data Engineer%'  THEN 'Data Engineer'
-            WHEN title ILIKE '%Data Scientist%' THEN 'Data Scientist'
-            WHEN title ILIKE '%ML Engineer%'    THEN 'ML Engineer'
-            WHEN title ILIKE '%Data Analyst%'   THEN 'Data Analyst'
-            ELSE 'Other' END AS role, COUNT(*) AS cnt
-        FROM jobs GROUP BY role ORDER BY cnt DESC LIMIT 1
+        SELECT role, COUNT(*) AS cnt
+        FROM (
+            SELECT
+                CASE
+                    WHEN title ILIKE '%Data Engineer%'  THEN 'Data Engineer'
+                    WHEN title ILIKE '%Data Scientist%' THEN 'Data Scientist'
+                    WHEN title ILIKE '%ML Engineer%'    THEN 'ML Engineer'
+                    WHEN title ILIKE '%Data Analyst%'   THEN 'Data Analyst'
+                    ELSE 'Other'
+                END AS role
+            FROM jobs
+        ) sub
+        GROUP BY role
+        ORDER BY cnt DESC
+        LIMIT 1
     """)
     return {**rows[0], "hottest_role": top_role[0]["role"] if top_role else "Data Engineer"}
 
 
 @router.get("/salary-benchmarks")
 def salary_benchmarks():
+    # FIX: GROUP BY alias 'role' — wrap in subquery
     by_role = query("""
-        SELECT CASE
-            WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
-            WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
-            WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
-            WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
-            WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
-            WHEN title ILIKE '%AI Engineer%'      THEN 'AI Engineer'
-            ELSE 'Other' END AS role,
-            ROUND(AVG(salary_avg)::numeric, 2) AS avg_salary
-        FROM jobs WHERE salary_avg IS NOT NULL GROUP BY role ORDER BY avg_salary DESC
+        SELECT role, ROUND(AVG(salary_avg)::numeric, 2) AS avg_salary
+        FROM (
+            SELECT
+                CASE
+                    WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
+                    WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
+                    WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
+                    WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
+                    WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
+                    WHEN title ILIKE '%AI Engineer%'      THEN 'AI Engineer'
+                    ELSE 'Other'
+                END AS role,
+                salary_avg
+            FROM jobs WHERE salary_avg IS NOT NULL
+        ) sub
+        GROUP BY role
+        ORDER BY avg_salary DESC
     """)
+    # city is a real column — GROUP BY city is fine
     by_city = query("""
         SELECT city, ROUND(AVG(salary_avg)::numeric, 2) AS avg_salary
         FROM jobs WHERE salary_avg IS NOT NULL AND city != '' AND city != 'India'
@@ -122,15 +148,23 @@ def salary_benchmarks():
 
 @router.get("/config/roles")
 def config_roles():
+    # FIX: DISTINCT on alias 'role' requires subquery
     rows = query("""
-        SELECT DISTINCT CASE
-            WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
-            WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
-            WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
-            WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
-            WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
-            WHEN title ILIKE '%AI Engineer%'      THEN 'AI Engineer'
-        END AS role FROM jobs WHERE title IS NOT NULL ORDER BY role
+        SELECT DISTINCT role
+        FROM (
+            SELECT
+                CASE
+                    WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
+                    WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
+                    WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
+                    WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
+                    WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
+                    WHEN title ILIKE '%AI Engineer%'      THEN 'AI Engineer'
+                END AS role
+            FROM jobs WHERE title IS NOT NULL
+        ) sub
+        WHERE role IS NOT NULL
+        ORDER BY role
     """)
     roles = [r["role"] for r in rows if r["role"]]
     return roles or ["Data Analyst", "Data Scientist", "Data Engineer", "ML Engineer", "Business Analyst"]
@@ -138,6 +172,7 @@ def config_roles():
 
 @router.get("/config/cities")
 def config_cities():
+    # city is a real column — GROUP BY city is fine
     rows = query("""
         SELECT city, COUNT(*) AS cnt FROM jobs
         WHERE city IS NOT NULL AND city != '' AND city != 'India'
@@ -150,7 +185,7 @@ def config_cities():
 @router.post("/gap-analysis")
 async def gap_analysis(
     current_role: str = Form(...), target_role: str = Form(...),
-    city: str = Form(...), experience: int = Form(...), skills: str = Form(...)
+    city: str = Form(...), experience: int = Form(...), skills: str = Form(...),
 ):
     user_skills = [s.strip().lower() for s in skills.split(",") if s.strip()]
     role_salary = get_role_salary_map()
@@ -184,7 +219,7 @@ async def gap_analysis(
         "market_salary": market_salary, "current_salary": current_salary,
         "salary_gap": round(market_salary - current_salary, 2),
         "jobs_available": jobs_available, "missing_skills": missing, "matched_skills": matched,
-        "exp_fit": exp_fit, "avg_exp_required": f"{avg_exp_min}–{avg_exp_max} yrs",
+        "exp_fit": exp_fit, "avg_exp_required": f"{avg_exp_min}-{avg_exp_max} yrs",
         "skill_match_pct": round(len(matched) / max(len(market_skills), 1) * 100, 1),
     }
 

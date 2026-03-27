@@ -23,6 +23,7 @@ def dashboard_kpis():
 
 @router.get("/jobs-by-city")
 def jobs_by_city():
+    # city is a real column — GROUP BY city is fine
     return query("""
         SELECT city, COUNT(*) AS job_count
         FROM jobs
@@ -35,19 +36,22 @@ def jobs_by_city():
 
 @router.get("/jobs-by-role")
 def jobs_by_role():
+    # FIX: GROUP BY alias 'role' — wrap in subquery
     return query("""
-        SELECT
-            CASE
-                WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
-                WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
-                WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
-                WHEN title ILIKE '%BI Analyst%'       THEN 'BI Analyst'
-                WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
-                WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
-                ELSE 'Other'
-            END AS role,
-            COUNT(*) AS job_count
-        FROM jobs
+        SELECT role, COUNT(*) AS job_count
+        FROM (
+            SELECT
+                CASE
+                    WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
+                    WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
+                    WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
+                    WHEN title ILIKE '%BI Analyst%'       THEN 'BI Analyst'
+                    WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
+                    WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
+                    ELSE 'Other'
+                END AS role
+            FROM jobs
+        ) sub
         GROUP BY role
         ORDER BY job_count DESC
     """)
@@ -55,19 +59,23 @@ def jobs_by_role():
 
 @router.get("/salary-distribution")
 def salary_distribution():
+    # FIX: GROUP BY alias 'salary_range' — wrap in subquery
     return query("""
-        SELECT
-            CASE
-                WHEN salary_avg < 5  THEN 'Under 5L'
-                WHEN salary_avg < 8  THEN '5–8L'
-                WHEN salary_avg < 12 THEN '8–12L'
-                WHEN salary_avg < 18 THEN '12–18L'
-                WHEN salary_avg < 25 THEN '18–25L'
-                ELSE '25L+'
-            END AS salary_range,
-            COUNT(*) AS count
-        FROM jobs
-        WHERE salary_avg IS NOT NULL
+        SELECT salary_range, COUNT(*) AS count
+        FROM (
+            SELECT
+                CASE
+                    WHEN salary_avg < 5  THEN 'Under 5L'
+                    WHEN salary_avg < 8  THEN '5-8L'
+                    WHEN salary_avg < 12 THEN '8-12L'
+                    WHEN salary_avg < 18 THEN '12-18L'
+                    WHEN salary_avg < 25 THEN '18-25L'
+                    ELSE '25L+'
+                END AS salary_range,
+                salary_avg
+            FROM jobs
+            WHERE salary_avg IS NOT NULL
+        ) sub
         GROUP BY salary_range
         ORDER BY MIN(salary_avg)
     """)
@@ -75,12 +83,14 @@ def salary_distribution():
 
 @router.get("/hiring-trend")
 def hiring_trend():
+    # FIX: GROUP BY alias 'month' — wrap in subquery
     return query("""
-        SELECT
-            TO_CHAR(date_posted, 'YYYY-MM') AS month,
-            COUNT(*) AS job_count
-        FROM jobs
-        WHERE date_posted IS NOT NULL
+        SELECT month, COUNT(*) AS job_count
+        FROM (
+            SELECT TO_CHAR(date_posted, 'YYYY-MM') AS month
+            FROM jobs
+            WHERE date_posted IS NOT NULL
+        ) sub
         GROUP BY month
         ORDER BY month ASC
         LIMIT 12

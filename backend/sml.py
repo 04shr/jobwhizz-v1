@@ -10,6 +10,18 @@ from db import query
 
 router = APIRouter(prefix="/api/sml", tags=["SML"])
 
+# Reusable CASE expression for role classification
+_ROLE_CASE = """
+    CASE
+        WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
+        WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
+        WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
+        WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
+        WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
+        ELSE 'Other'
+    END
+"""
+
 
 @router.get("/stats/summary")
 def stats_summary():
@@ -102,14 +114,19 @@ def salary_distribution():
         if i == len(clean) - 2:
             case_parts.append(f"WHEN salary_avg >= {lo_v} THEN '{lo_v}L+'")
         else:
-            case_parts.append(f"WHEN salary_avg < {hi_v} THEN '{lo_v}–{hi_v}L'")
+            case_parts.append(f"WHEN salary_avg < {hi_v} THEN '{lo_v}-{hi_v}L'")
 
     case_sql = "CASE\n" + "\n".join(f"            {p}" for p in case_parts) + "\n            ELSE 'Other'\n        END"
+    # FIX: GROUP BY alias 'bucket' — wrap in subquery
     return query(f"""
-        SELECT {case_sql} AS bucket, COUNT(*) AS count,
+        SELECT bucket, COUNT(*) AS count,
                ROUND(AVG(salary_avg)::numeric, 2) AS avg_in_bucket
-        FROM jobs WHERE salary_avg IS NOT NULL
-        GROUP BY bucket ORDER BY MIN(salary_avg)
+        FROM (
+            SELECT {case_sql} AS bucket, salary_avg
+            FROM jobs WHERE salary_avg IS NOT NULL
+        ) sub
+        GROUP BY bucket
+        ORDER BY MIN(salary_avg)
     """)
 
 
@@ -148,16 +165,23 @@ def regression_data():
 @router.get("/feature-importance")
 def feature_importance():
     total_var = float(query("SELECT VAR_SAMP(salary_avg) AS v FROM jobs WHERE salary_avg IS NOT NULL")[0]["v"] or 1)
+    # FIX: GROUP BY alias 'role' — wrap in subquery
     role_rows = query("""
-        SELECT CASE
-            WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
-            WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
-            WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
-            WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
-            WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
-            ELSE 'Other' END AS role,
-            AVG(salary_avg) AS avg_sal, COUNT(*) AS cnt
-        FROM jobs WHERE salary_avg IS NOT NULL GROUP BY role
+        SELECT role, AVG(salary_avg) AS avg_sal, COUNT(*) AS cnt
+        FROM (
+            SELECT
+                CASE
+                    WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
+                    WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
+                    WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
+                    WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
+                    WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
+                    ELSE 'Other'
+                END AS role,
+                salary_avg
+            FROM jobs WHERE salary_avg IS NOT NULL
+        ) sub
+        GROUP BY role
     """)
     grand_mean = sum(float(r["avg_sal"]) * int(r["cnt"]) for r in role_rows) / sum(int(r["cnt"]) for r in role_rows)
     role_bv  = sum(int(r["cnt"]) * (float(r["avg_sal"]) - grand_mean) ** 2 for r in role_rows) / sum(int(r["cnt"]) for r in role_rows)
@@ -184,26 +208,35 @@ def feature_importance():
 
 @router.get("/salary-by-role")
 def salary_by_role():
+    # FIX: GROUP BY alias 'role' — wrap in subquery
     return query("""
-        SELECT CASE
-            WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
-            WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
-            WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
-            WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
-            WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
-            WHEN title ILIKE '%AI Engineer%'      THEN 'AI Engineer'
-            ELSE 'Other' END AS role,
-            ROUND(AVG(salary_avg)::numeric, 2) AS avg_salary,
-            ROUND(MIN(salary_avg)::numeric, 2) AS min_salary,
-            ROUND(MAX(salary_avg)::numeric, 2) AS max_salary,
-            COUNT(*) AS job_count
-        FROM jobs WHERE salary_avg IS NOT NULL
-        GROUP BY role ORDER BY avg_salary DESC
+        SELECT role,
+               ROUND(AVG(salary_avg)::numeric, 2) AS avg_salary,
+               ROUND(MIN(salary_avg)::numeric, 2) AS min_salary,
+               ROUND(MAX(salary_avg)::numeric, 2) AS max_salary,
+               COUNT(*) AS job_count
+        FROM (
+            SELECT
+                CASE
+                    WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
+                    WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
+                    WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
+                    WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
+                    WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
+                    WHEN title ILIKE '%AI Engineer%'      THEN 'AI Engineer'
+                    ELSE 'Other'
+                END AS role,
+                salary_avg
+            FROM jobs WHERE salary_avg IS NOT NULL
+        ) sub
+        GROUP BY role
+        ORDER BY avg_salary DESC
     """)
 
 
 @router.get("/salary-by-city")
 def salary_by_city(limit: int = 10):
+    # city is a real column — GROUP BY city is fine
     return query("""
         SELECT city, ROUND(AVG(salary_avg)::numeric, 2) AS avg_salary, COUNT(*) AS job_count
         FROM jobs
@@ -258,19 +291,26 @@ def hypothesis_blr_vs_rest():
 
 @router.get("/model/evaluation")
 def model_evaluation():
+    # Inner subquery already groups by role correctly (GROUP BY role in subquery scope)
     rows = query("""
         SELECT j.salary_avg AS actual, role_avgs.avg_sal AS predicted
         FROM jobs j
         JOIN (
-            SELECT CASE
-                WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
-                WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
-                WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
-                WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
-                WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
-                ELSE 'Other' END AS role,
-                ROUND(AVG(salary_avg)::numeric, 2) AS avg_sal
-            FROM jobs WHERE salary_avg IS NOT NULL GROUP BY role
+            SELECT role, ROUND(AVG(salary_avg)::numeric, 2) AS avg_sal
+            FROM (
+                SELECT
+                    CASE
+                        WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
+                        WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
+                        WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
+                        WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
+                        WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
+                        ELSE 'Other'
+                    END AS role,
+                    salary_avg
+                FROM jobs WHERE salary_avg IS NOT NULL
+            ) sub
+            GROUP BY role
         ) AS role_avgs ON role_avgs.role = CASE
             WHEN j.title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
             WHEN j.title ILIKE '%Data Scientist%'   THEN 'Data Scientist'

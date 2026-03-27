@@ -53,6 +53,7 @@ def data_quality():
 
 @router.get("/salary-by-city")
 def salary_by_city():
+    # city is a real column — GROUP BY city is fine
     return query("""
         SELECT
             city,
@@ -68,40 +69,31 @@ def salary_by_city():
 
 @router.get("/salary-by-role")
 def salary_by_role():
+    # FIX: PostgreSQL forbids GROUP BY on a SELECT alias (CASE ... END AS role).
+    # Wrap in a subquery so the outer query groups by the materialised column.
     return query("""
-        SELECT
-    CASE
-        WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
-        WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
-        WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
-        WHEN title ILIKE '%BI Analyst%'       THEN 'BI Analyst'
-        WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
-        WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
-        ELSE 'Other'
-    END AS role,
-
-    ROUND(
-        COALESCE(
-            AVG(NULLIF(salary_avg, 0)), 0
-        )::numeric, 2
-    ) AS avg_salary,
-
-    ROUND(
-        COALESCE(
-            MAX(NULLIF(salary_max, 0)), 0
-        )::numeric, 2
-    ) AS max_salary,
-
-    COUNT(*) AS job_count
-
-FROM jobs
-
-WHERE 
-    salary_avg IS NOT NULL
-    AND salary_avg > 0
-
-GROUP BY role
-ORDER BY avg_salary DESC;
+        SELECT role,
+               ROUND(COALESCE(AVG(NULLIF(salary_avg, 0)), 0)::numeric, 2) AS avg_salary,
+               ROUND(COALESCE(MAX(NULLIF(salary_max, 0)), 0)::numeric, 2) AS max_salary,
+               COUNT(*) AS job_count
+        FROM (
+            SELECT
+                CASE
+                    WHEN title ILIKE '%Data Scientist%'   THEN 'Data Scientist'
+                    WHEN title ILIKE '%Data Engineer%'    THEN 'Data Engineer'
+                    WHEN title ILIKE '%ML Engineer%'      THEN 'ML Engineer'
+                    WHEN title ILIKE '%BI Analyst%'       THEN 'BI Analyst'
+                    WHEN title ILIKE '%Business Analyst%' THEN 'Business Analyst'
+                    WHEN title ILIKE '%Data Analyst%'     THEN 'Data Analyst'
+                    ELSE 'Other'
+                END AS role,
+                salary_avg,
+                salary_max
+            FROM jobs
+            WHERE salary_avg IS NOT NULL AND salary_avg > 0
+        ) sub
+        GROUP BY role
+        ORDER BY avg_salary DESC
     """)
 
 
@@ -121,12 +113,14 @@ def experience_vs_salary():
 
 @router.get("/jobs-over-time")
 def jobs_over_time():
+    # FIX: GROUP BY alias 'date' — wrap in subquery
     return query("""
-        SELECT
-            TO_CHAR(date_posted, 'YYYY-MM-DD') AS date,
-            COUNT(*) AS job_count
-        FROM jobs
-        WHERE date_posted IS NOT NULL
+        SELECT date, COUNT(*) AS job_count
+        FROM (
+            SELECT TO_CHAR(date_posted, 'YYYY-MM-DD') AS date
+            FROM jobs
+            WHERE date_posted IS NOT NULL
+        ) sub
         GROUP BY date
         ORDER BY date ASC
     """)
@@ -146,20 +140,23 @@ def top_skills(limit: int = 15):
 
 @router.get("/skills-by-role")
 def skills_by_role():
+    # FIX: GROUP BY alias 'role' — wrap in subquery
     return query("""
-        SELECT
-            CASE
-                WHEN j.title ILIKE '%Data Scientist%' THEN 'Data Scientist'
-                WHEN j.title ILIKE '%Data Engineer%'  THEN 'Data Engineer'
-                WHEN j.title ILIKE '%ML Engineer%'    THEN 'ML Engineer'
-                WHEN j.title ILIKE '%Data Analyst%'   THEN 'Data Analyst'
-                ELSE 'Other'
-            END AS role,
-            s.skill_name,
-            COUNT(*) AS frequency
-        FROM jobs j
-        JOIN job_skills js ON j.id = js.job_id
-        JOIN skills s ON s.id = js.skill_id
-        GROUP BY role, s.skill_name
+        SELECT role, skill_name, COUNT(*) AS frequency
+        FROM (
+            SELECT
+                CASE
+                    WHEN j.title ILIKE '%Data Scientist%' THEN 'Data Scientist'
+                    WHEN j.title ILIKE '%Data Engineer%'  THEN 'Data Engineer'
+                    WHEN j.title ILIKE '%ML Engineer%'    THEN 'ML Engineer'
+                    WHEN j.title ILIKE '%Data Analyst%'   THEN 'Data Analyst'
+                    ELSE 'Other'
+                END AS role,
+                s.skill_name
+            FROM jobs j
+            JOIN job_skills js ON j.id = js.job_id
+            JOIN skills s ON s.id = js.skill_id
+        ) sub
+        GROUP BY role, skill_name
         ORDER BY role, frequency DESC
     """)
