@@ -31,7 +31,7 @@ def query(sql, params=None):
     conn = get_db()
     with conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(sql, params or [])
+            cur.execute(sql, params if params else None)
             rows = cur.fetchall()
     conn.close()
     return [dict(r) for r in rows]
@@ -43,7 +43,7 @@ def execute(sql, params=None):
     last_id = None
     with conn:
         with conn.cursor() as cur:
-            cur.execute(sql, params or [])
+            cur.execute(sql, params if params else None)
             try:
                 last_id = cur.fetchone()[0]
             except Exception:
